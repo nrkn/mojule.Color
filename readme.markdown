@@ -19,6 +19,61 @@ Licensed under the [MIT License][2]
 * Check color contrast, get another color that contrasts with given color etc.
 * Generate a range of colors
 
+##Quick Start
+
+Quick demo of most features:
+
+    var colors = [
+      new Color( '#39f' ),
+      new Color( 'rgba( 51, 153, 255, 0.5' ),
+      new Color({ red: 51, green: 154, blue: 255, alpha: 0.5 }),
+      new Color({ hue: 210, saturation: 100, lightness: 50, alpha: 0.5 })
+    ];
+    
+    color[ 0 ].red( 255 ).alpha( 0.5 );
+    
+    alert( color[ 0 ].red() );
+    alert( color[ 0 ].css() );
+
+    var hsla = color[ 0 ].hsla();
+    var rgba = color[ 0 ].rgba();
+    var cloned = color.clone();
+
+    var rainbow = color.Range({ hue: 0, saturation: 100, lightness: 50 }, { hue: 338 }, 7 );
+    
+    var darker = [];
+    for( var i = 0; i < colors.length; i++ ) {
+      darker.push( colors[ i ].clone().multiplyHsla({ lightness: 0.75 }) );
+    }
+    
+    var textColor = new Color( '#39f' );
+    var backgroundColor = textColor.getContrastingTone();
+        
+    var colorArr = [ 51, 153, 255, 0.5 ];
+    if( !Color.canParse( colorArr ) ) {
+      var arrayParser = {
+        predicate:  function( value ) {
+                      return value instanceof Array && value.length > 0;
+                    },
+        parse:  function( value, color ) {
+                  var rgba = {};
+                  rgba[ 'red' ] = value[ 0 ];
+                  if( value.length > 1 ) {
+                    rgba[ 'green' ] = value[ 1 ];
+                  }
+                  if( value.length > 2 ) {
+                    rgba[ 'blue' ] = value[ 2 ];
+                  }
+                  if( value.length > 3 ) {
+                    rgba[ 'alpha' ] = value[ 3 ];
+                  }
+                  return color.rgba( rgba );
+                }
+      };
+      Color.addParser( 'array', arrayParser );  
+    }
+    var colorFromArr = new Color( colorArr );
+    
 ##Usage
 
 An alias called `Color` is created if doing so does not conflict with an 
