@@ -4,12 +4,14 @@
 
 A comprehensive JavaScript color class.
 
-Part of [***mojule***][0]  
+Part of [***mojule***][0] (but  
 Copyright 2011, [Information Age Ltd][1]  
 Licensed under the [MIT License][2]
 
 ##Features
 
+* Standalone, no dependencies
+* 3.99KB minified + gzipped
 * Create from and convert to multiple color formats, rgb, hsl, css values etc.
 * Add additional color formats via plug-ins
 * Get information about colors, red component, hue, lightness, brightness etc.
