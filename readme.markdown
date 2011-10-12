@@ -381,7 +381,7 @@ Example:
 
 ####`.hasEnoughContrast( compareValue, colorThreshold, brightnessThreshold )`
 
-Determines if the current color contrast well enough again `compareValue` to be
+Determines if the current color contrasts well enough against `compareValue` to be
 easily readable by a wide range of people. `colorThreshold` and 
 `brightnessThreshold` are optional and if omitted default to the [W3 recommendations][4]
 of `500` and `125` respectively.
