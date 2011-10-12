@@ -102,7 +102,7 @@ var mojule = mojule === undefined ? {} : mojule;
           });
         }
       }
-    }
+    };
     
     return extensions[ value instanceof Array ? 'array' : typeof value ];
   };
