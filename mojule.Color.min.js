@@ -1,5 +1,5 @@
 /*!
- * mojule.Color v1.0
+ * mojule.Color v1.01
  * A comprehensive JavaScript color class
  * http://mojule.co.nz/
  *
