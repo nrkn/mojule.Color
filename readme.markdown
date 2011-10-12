@@ -339,7 +339,7 @@ value.
 Example:
 
     var color = new Color( 'rgba( 51, 153, 255, 0.5 )' );
-    var css = color.css(); //value will be '#39f'    
+    var css = color.hex(); //value will be '#39f'    
 
 **Note**: If you pass a value to this function it will set the value instead of 
 getting it and *will not return the value but an instance of the current 
