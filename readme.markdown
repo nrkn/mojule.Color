@@ -169,7 +169,7 @@ var newColor = oldColor.clone();
 These functions tell you something about a color without changing it. They all
 require you to create an instance of a color first.
 
-##`.red()`
+###.red()
 
 Returns the red component of the color. 
 
@@ -184,7 +184,7 @@ var red = color.red(); //value will be 51
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
     
-##`.green()`
+###.green()
 
 Returns the green component of the color
 
@@ -199,7 +199,7 @@ var green = color.green(); //value will be 153
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
     
-##`.blue()`
+###.blue()
 
 Returns the blue component of the color
 
@@ -214,7 +214,7 @@ var blue = color.blue(); //value will be 255
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
   
-##`.hue()`
+###.hue()
 
 Returns the hue component of the color
 
@@ -229,7 +229,7 @@ var hue = color.hue(); //value will be 210
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
     
-##`.saturation()`
+###.saturation()
 
 Returns the saturation component of the color
 
@@ -244,7 +244,7 @@ var saturation = color.saturation(); //value will be 100
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
     
-##`.lightness()`
+###.lightness()
 
 Returns the lightness component of the color
 
@@ -259,7 +259,7 @@ var lightness = color.lightness(); //value will be 50
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
 
-##`.alpha()`
+###.alpha()
 
 Returns the alpha component of the color
 
@@ -274,7 +274,7 @@ var alpha = color.alpha(); //value will be 0.5
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
 
-##`.rgba()`
+###.rgba()
 
 Returns an object describing the color in the rgba color space, and accompanying
 css for the object.
@@ -302,11 +302,11 @@ Return value:
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
 
-##`.rgb()`
+###.rgb()
 
 An alias for `.rgba()`
 
-##`.hsla()`
+###.hsla()
 
 Returns an object describing the color in the hsla color space, and accompanying
 css for the object.
@@ -334,7 +334,7 @@ Return value:
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.
      
-##`.css()`
+###.css()
 
 Returns a string representing the css value for the color.  If the color has no
 alpha (alpha is set to `1.0`) then a hex value will be returned, otherwise an
@@ -350,7 +350,7 @@ var alpha = new Color( 'rgba( 51, 153, 255, 0.5 )' );
 var alphaCss = alpha.css(); //value will be 'rgba( 51, 153, 255, 0.5 )'
 ```
     
-##`.hex()`
+###.hex()
 
 Returns a hex representation of the color. The main difference between this and
 `.css()` is that `.hex()` will always drop the alpha channel regardless of its
@@ -367,7 +367,7 @@ var css = color.hex(); //value will be '#39f'
 getting it and *will not return the value but an instance of the current 
 color*, see `Modifying functions` for the rationale behind this.    
     
-##`.brightness()`
+###.brightness()
 
 Gets the relative brightness of the current color. This differs from lightness 
 in that brightness takes into account that the human eye sees red, green and 
@@ -381,7 +381,7 @@ var color = new Color( '#39f' );
 var brightness = color.brightness(); //value will be 134.13    
 ```
 
-##`.brightnessDifference( compareValue )`
+###.brightnessDifference( compareValue )
 
 Get the difference in brightness between the current color and the color passed
 in. `compareValue` can be any value that would be accepted by the constructor,
@@ -394,7 +394,7 @@ var color = new Color( '#39f' );
 var diff = color.brightnessDifference( '#fff' ); //value will be 120.87
 ```
 
-##`.colorDifference( compareValue )`
+###.colorDifference( compareValue )
 
 Gets the difference in color between the current color and the color passed in.
 `compareValue` can be any value that would be accepted by the constructor,
@@ -407,7 +407,7 @@ var color = new Color( '#39f' );
 var diff = color.colorDifference( '#f90' ); //value will be 459
 ```
 
-##`.hasEnoughContrast( compareValue, colorThreshold, brightnessThreshold )`
+###.hasEnoughContrast( compareValue, colorThreshold, brightnessThreshold )
 
 Determines if the current color contrasts well enough against `compareValue` to be
 easily readable by a wide range of people. `colorThreshold` and 
@@ -422,7 +422,7 @@ var enough = color.hasEnoughContrast( '#f90' ); //will be false
 var enoughForced = color.hasEnoughContrast( '#f90', 450, 30 ); //will be true
 ```
 
-##`.getContrastingTone()`
+###.getContrastingTone()
 
 Returns either black or white depending on which would be more readable when 
 text is drawn in the current color on a black/white background or black/white
@@ -448,7 +448,7 @@ for example:
 var color = new Color( '#39f' ).hue( 40 ).alpha( 0.5 );
 ```
       
-##`.red( value )`
+###.red( value )
 
 Sets the red component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -460,7 +460,7 @@ var color = new Color( '#39f' );
 color.red( 255 ); //color is now '#f9f'
 ```
 
-##`.green( value )`
+###.green( value )
 
 Sets the green component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -472,7 +472,7 @@ var color = new Color( '#39f' );
 color.green( 255 ); //color is now '#3ff'
 ```
 
-##`.blue( value )`
+###.blue( value )
 
 Sets the blue component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -484,7 +484,7 @@ var color = new Color( '#39f' );
 color.blue( 0 ); //color is now '#390'
 ```
 
-##`.hue( value )`
+###.hue( value )
 
 Sets the hue component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -496,7 +496,7 @@ var color = new Color( '#f00' );
 color.hue( 210 ); //color is now '#007fff'
 ```
 
-##`.saturation( value )`
+###.saturation( value )
 
 Sets the saturation component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -508,7 +508,7 @@ var color = new Color( '#f00' );
 color.saturation( 50 ); //color is now '#bf4040'
 ```
 
-##`.lightness( value )`
+###.lightness( value )
 
 Sets the lightness component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -520,7 +520,7 @@ var color = new Color( '#f00' );
 color.lightness( 25 ); //color is now '#800000'
 ```
 
-##`.alpha( value )`
+###.alpha( value )
 
 Sets the alpha component of the current color and returns an instance of the
 current color to allow for method chaining.
@@ -532,11 +532,11 @@ var color = new Color( '#f00' );
 color.alpha( 25 ); //color is now 'rgba( 255, 0, 0, 0.5 )'
 ```
 
-##`.rgb( value )`
+###.rgb( value )
 
 Alias for `.rgba( value )`.
 
-##`.rgba( value )`
+###.rgba( value )
 
 Sets the red, green and blue components of the color from the passed object.
 The object must have some or all of the properties `red`, `green`, `blue` and 
@@ -554,11 +554,11 @@ var color = new Color( '#000' );
 color.rgba({ red: 255, green: 153 }); //value is '#f90'
 ```
 
-##`.hsl( value )`
+###.hsl( value )
 
 Alias for `.hsla( value )`.
 
-##`.hsla( value )`
+###.hsla( value )
 
 Sets the hue, saturation and lightness components of the color from the passed object.
 The object must have some or all of the properties `hue`, `saturation`, `lightness` and 
@@ -576,7 +576,7 @@ var color = new Color( '#f00' );
 color.hsla({ hue: 210, alpha: 0.5 }); //value is 'rgba( 0, 127, 255, 0.5 )'
 ```
 
-##`.hex( value )`
+###.hex( value )
 
 Sets the red, green and blue components of the color to those specified in the 
 hex string. Note that because hex strings do not have alpha information, the 
@@ -594,7 +594,7 @@ var color = new Color({red: 255, green: 0, blue: 0, alpha: 0.5});
 color.hex( '#39f' ); //value is 'rgba( 51, 153, 255, 0.5 )'
 ```
     
-##`.multiplyHsla( modifiers )`
+###.multiplyHsla( modifiers )
 
 Modify the hue, saturation, lightness and alpha components of an image by 
 multiplying the values together with the values specified in modifiers.
@@ -616,7 +616,7 @@ color.multiplyHsla({
 }); //value is rgba( 57, 115, 38, 0.5 )
 ```
         
-##`.sumHsla( modifiers )`
+###.sumHsla( modifiers )
  
 Modify the hue, saturation, lightness and alpha components of an image by 
 summing the values together with the values specified in modifiers.
@@ -640,7 +640,7 @@ color.sumHsla({
     
 ##Miscellaneous instance functions    
 
-##`.clone()`
+###.clone()
 
 Returns a copy of a color that can be modified without affecting the original
 color.
@@ -656,7 +656,7 @@ var alpha = color.clone().alpha( 0.5 ); //value is 'rgba( 51, 153, 255, 0.5 )'
 
 These functions can be called without creating an instance of a color.
 
-##`.range( start, end, steps )`
+###.range( start, end, steps )
 
 Produces an array of colors with a length of steps where the first item equals 
 the start color, the last item equals the end color and the intermediate items 
@@ -681,7 +681,7 @@ var end = {
 var hueRange = Color.range( start, end, 16 );
 ```
 
-##`.canParse( value )`
+###.canParse( value )
 
 Returns a boolean indicating whether or not the Color class can parse the given
 value.
@@ -693,7 +693,7 @@ var canParseHex = Color.canParse( '#39f' ); //value is true
 var canParseArray = Color.canParse( [ 51, 153, 255 ] ); //value is false
 ```
     
-##`.parserType( value )`
+###.parserType( value )
 
 Returns a string indicating the type of parser used to handle the given value.
 The built in types are 'undefinedValue', 'cssHex', 'cssRgb', 'cssRgbPercent', 
@@ -710,7 +710,7 @@ Examples:
     var parserType3 = Color.parserType( 0 ); //value is 'undefinedValue'
 ```
     
-##`.addParser( name, parser )`
+###.addParser( name, parser )
 
 Adds a user-defined parser to handle other color formats. `name` should be a 
 descriptive unique identifier for the parser. `parser` should be an object like:
@@ -757,8 +757,7 @@ var canParseNow = Color.canParse( colorArr ); //true
 var colFromArray = new Color( arrValues ); //value is 'rgba( 51, 153, 255, 0.5 )'
 ```
 
-##`.removeParser( name )`
-
+###.removeParser( name )
 Removes the named parser. Only works on user-defined parsers.
 
 Example:
