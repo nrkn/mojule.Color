@@ -1,23 +1,21 @@
 /*!
- * mojule.Color v0.9
+ * mojule.Color v1.0
  * A comprehensive JavaScript color class
  * http://mojule.co.nz/
  *
  * Copyright 2011, Information Age Ltd
  * Licensed under the MIT License
  *
- * Date: Tue Oct 11 19:38:48 2011 +1300
+ * Date: Thu Oct 12 10:38:48 2011 +1300
  */
 /*
   TODO
-    docs    
     generate themes
     get complementary colors    
     cmyk?
     hsv?
     modify / blend / overlay / photoshop modes?
     24 bit under hood to reduce lossiness?
-    clamp etc. should live elsewhere?
 */
 
 //  Declare but don't overwrite mojule if it already exists - this way parts of 
@@ -27,92 +25,88 @@ var mojule = mojule === undefined ? {} : mojule;
 (function(){
   'use strict';
 
-  //  Prototype extensions, don't overwrite if they already exist
-  //  should we test to make sure that they do what's expected if we do this?
-
-  //  Restrict a number to a given range. if a number is less than min, make it 
-  //  min, if it's more than, make it max, otherwise leave it alone
-  if( Number.prototype.clamp === undefined ) {
-    Number.prototype.clamp = function( min, max ) {
-      return this < min ? min : this > max ? max : this;
-    };  
-  }  
-
-  // Mostly useful for angles and time, if a number is outside of the range, wrap 
-  // it so that it falls into the range
-  if( Number.prototype.wrap === undefined ) {
-    Number.prototype.wrap = function( range ) {
-      return ( this % range + range ) % range;
-    };
-  }
-
-  //  Returns the first item in an array that matched the predicate, or the first
-  //  item if no predicate is specified
-  if( Array.prototype.first === undefined ) {
-    Array.prototype.first = function( predicate ) {
-      var i;
-      if( !predicate ){ return this[ 0 ]; }
-      for( i = 0; i < this.length; i += 1 ) {      
-        if( predicate( this[ i ] ) ){ return this[ i ]; }
+  //  Extend functionality without monkeypatching native objects
+  var _ = function( value ) {
+    var extensions = {
+      number: {
+        //  Restrict a number to a given range. if a number is less than min, make it 
+        //  min, if it's more than, make it max, otherwise leave it alone      
+        clamp: function( min, max ) {
+          return value < min ? min : value > max ? max : value;
+        },
+        // Mostly useful for angles and time, if a number is outside of the range, wrap 
+        // it so that it falls into the range        
+        wrap: function( range ) {
+          return ( value % range + range ) % range;
+        }
+      },
+      string: {      
+        // Trims whitespace from start or end of string
+        trim: function() {
+          //call native functionality if it exists
+          if( String.prototype.trim ){ return value.trim(); }
+          
+          return value.replace( /^\s\s*/, '' ).replace( /\s\s*$/, '' );
+        }      
+      },
+      array: {
+        //  Returns the first item in an array that matched the predicate, or the first
+        //  item if no predicate is specified        
+        first: function( predicate ) {
+          var i;
+          if( !predicate ){ return value[ 0 ]; }
+          for( i = 0; i < value.length; i += 1 ) {      
+            if( predicate( value[ i ] ) ){ return value[ i ]; }
+          }      
+        },   
+        //  Returns whether any items in the array match the predicate        
+        any: function( predicate ) {
+          //call native functionality if it exists
+          if( Array.prototype.some ){ return value.some( predicate ); }
+          
+          var i;
+          if( !predicate ){ return false; }
+          for( i = 0; i < value.length; i += 1 ) {
+            if( predicate( value[ i ] ) ){ return true; }
+          }
+          return false;
+        },
+        //  Returns the first item in an array which is not undefined. Useful for 
+        //  creating a list of fallback values. In the following example we try to set
+        //  foo to the argument passed to the function, if that argument is undefined
+        //  the next option is to leave foo with its existing value, however its 
+        //  existing value may also be undefined in which case it falls back to 'bar'.
+        //
+        //  //  initializeFoo() may return undefined
+        //  var foo = initializeFoo(); 
+        //  function setFoo( value ) {
+        //    foo = [ value, foo, 'bar' ].firstDefined();
+        //  }        
+        firstDefined: function() {
+          return _( value ).first(function( item ) { 
+            return item !== undefined;
+          });
+        },
+        // Returns whether or not any of the items in an array are not undefined. 
+        // Useful for duck testing an object to see if it meets certain criteria.
+        //
+        // function displayFooBar( value ) {
+        //   var displayables = [ value.foo, value.bar ];
+        //   if( displayables.anyDefined() ) {
+        //     alert( displayables.firstDefined() );
+        //   }  
+        // }        
+        anyDefined: function() {
+          return _( value ).any(function( item ) { 
+            return item !== undefined;
+          });
+        }
       }
-    };
-  }
-
-  //  Returns whether any items in the array match the predicate
-  if( Array.prototype.any === undefined ) {
-    Array.prototype.any = function( predicate ) {
-      var i;
-      if( !predicate ){ return false; }
-      for( i = 0; i < this.length; i += 1 ) {
-        if( predicate( this[ i ] ) ){ return true; }
-      }
-      return false;
-    };
-  }
-
-  //  Returns the first item in an array which is not undefined. Useful for 
-  //  creating a list of fallback values. In the following example we try to set
-  //  foo to the argument passed to the function, if that argument is undefined
-  //  the next option is to leave foo with its existing value, however its 
-  //  existing value may also be undefined in which case it falls back to 'bar'.
-  //
-  //  //  initializeFoo() may return undefined
-  //  var foo = initializeFoo(); 
-  //  function setFoo( value ) {
-  //    foo = [ value, foo, 'bar' ].firstDefined();
-  //  }
-  if( Array.prototype.firstDefined === undefined ) {
-    Array.prototype.firstDefined = function() {
-      return this.first(function( item ) { 
-        return item !== undefined;
-      });
-    };
-  }
-
-  // Returns whether or not any of the items in an array are not undefined. 
-  // Useful for duck testing an object to see if it meets certain criteria.
-  //
-  // function displayFooBar( value ) {
-  //   var displayables = [ value.foo, value.bar ];
-  //   if( displayables.anyDefined() ) {
-  //     alert( displayables.firstDefined() );
-  //   }  
-  // }
-  if( Array.prototype.anyDefined === undefined ) {
-    Array.prototype.anyDefined = function() {
-      return this.any(function( item ) { 
-        return item !== undefined;
-      });
-    };
-  }
-
-  // Trims whitespace from start or end of string
-  if( String.prototype.trim === undefined ) {
-    String.prototype.trim = function() {
-      return this.replace( /^\s\s*/, '' ).replace( /\s\s*$/, '' );
-    };
-  }  
-
+    }
+    
+    return extensions[ value instanceof Array ? 'array' : typeof value ];
+  };
+ 
   // Constructor will try to figure out what value is, see mojule.Color.parse
   mojule.Color = function( value ){
     var r = 0, 
@@ -154,41 +148,41 @@ var mojule = mojule === undefined ? {} : mojule;
     //  Following functions starting with is... test a string to see if it matches 
     //  a given CSS3 color value
     function isHex( value ) {       
-      return typeof value === 'string' && ( /^#(?:[0-9a-f]{3,6})\b$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^#(?:[0-9a-f]{3,6})\b$/i ).test( _( value ).trim() );
     }  
     
     function isRgbInt( value ) {
-      return typeof value === 'string' && ( /^rgb\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^rgb\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i ).test( _( value ).trim() );
     }   
     
     function isRgbPercent( value ) {
-      return typeof value === 'string' && ( /^rgb\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^rgb\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
     }
     
     function isRgbaInt( value ) {
-      return typeof value === 'string' && ( /^rgba\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^rgba\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
     }   
     
     function isRgbaPercent( value ) {
-      return typeof value === 'string' && ( /^rgba\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^rgba\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
     }
     
     function isHsl( value ) {
-      return typeof value === 'string' && ( /^hsl\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^hsl\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
     }
     
     function isHsla( value ) {
-      return typeof value === 'string' && ( /^hsla\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( value.trim() );
+      return typeof value === 'string' && ( /^hsla\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
     }
     
     function isNamedColor( value ) {
-      return typeof value === 'string' && mojule.Color.namedColors[ value.trim() ] !== undefined;
+      return typeof value === 'string' && mojule.Color.namedColors[ _( value ).trim() ] !== undefined;
     }
     
     // Following functions starting with parse... set the current color from the   
     // passed in CSS3 color value
     function parseRgbInt( value ) {
-      var matches = value.trim().match( /^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i );
+      var matches = _( value ).trim().match( /^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i );
       return color.rgba({ 
         red: parseInt( matches[ 1 ], 10 ), 
         green: parseInt( matches[ 2 ], 10 ), 
@@ -197,7 +191,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseRgbPercent( value ) {
-      var matches = value.trim().match( /^rgb\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
+      var matches = _( value ).trim().match( /^rgb\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
       return color.rgba({  
         red: parseInt( matches[ 1 ], 10 ) * 2.55,  
         green: parseInt( matches[ 2 ], 10 ) * 2.55, 
@@ -207,7 +201,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseRgbaInt( value ) {
-      var matches = value.trim().match( /^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+      var matches = _( value ).trim().match( /^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
       return color.rgba({  
         red: parseInt( matches[ 1 ], 10 ), 
         green: parseInt( matches[ 2 ], 10 ), 
@@ -217,7 +211,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseRgbaPercent( value ) {
-      var matches = value.trim().match( /^rgba\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+      var matches = _( value ).trim().match( /^rgba\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
       return color.rgba({ 
         red: parseInt( matches[ 1 ], 10 ) * 2.55,  
         green: parseInt( matches[ 2 ], 10 ) * 2.55, 
@@ -227,7 +221,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseHsl( value ) {
-      var matches = value.trim().match( /^hsl\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
+      var matches = _( value ).trim().match( /^hsl\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
       return color.hsla({  
         hue: parseInt( matches[ 1 ], 10 ),
         saturation: parseInt( matches[ 2 ], 10 ),
@@ -237,7 +231,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseHsla( value ) {
-      var matches = value.trim().match( /^hsla\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+      var matches = _( value ).trim().match( /^hsla\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
       return color.hsla({  
         hue: parseInt( matches[ 1 ], 10 ),
         saturation: parseInt( matches[ 2 ], 10 ),
@@ -247,7 +241,7 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     function parseNamedColor( value ) {
-      return ( color = mojule.Color.namedColors[ value.trim() ] );
+      return ( color = mojule.Color.namedColors[ _( value ).trim() ] );
     }
     
     //  Determines if value is something we can deal with and if so set the color
@@ -257,7 +251,7 @@ var mojule = mojule === undefined ? {} : mojule;
     //  Color class, and objects with properties for rgba/hsla values.
     function parse( value ) {
       
-      var parser = parsers.toArray().first(function(item){
+      var parser = _( parsers.toArray() ).first(function(item){
             return item.predicate( value );
           });
           
@@ -393,10 +387,10 @@ var mojule = mojule === undefined ? {} : mojule;
     //  make a color half as bright as foo
     function hslMultiply( hsl, modifiers ) {
       return {
-        hue: ( hsl.hue * [ modifiers.hue, modifiers.h, 1 ].firstDefined() ).wrap( 360 ),
-        saturation: ( hsl.saturation * [ modifiers.saturation, modifiers.s, 1 ].firstDefined() ).clamp( 0, 100 ),
-        lightness: (  hsl.lightness * [ modifiers.lightness, modifiers.l, 1 ].firstDefined() ).clamp( 0, 100 ),
-        alpha: ( hsl.alpha * [ modifiers.alpha, modifiers.a, 1 ].firstDefined() ).clamp( 0, 1 )
+        hue: _( hsl.hue * _( [ modifiers.hue, modifiers.h, 1 ] ).firstDefined() ).wrap( 360 ),
+        saturation: _( hsl.saturation * _( [ modifiers.saturation, modifiers.s, 1 ] ).firstDefined() ).clamp( 0, 100 ),
+        lightness: _(  hsl.lightness * _( [ modifiers.lightness, modifiers.l, 1 ] ).firstDefined() ).clamp( 0, 100 ),
+        alpha: _( hsl.alpha * _( [ modifiers.alpha, modifiers.a, 1 ] ).firstDefined() ).clamp( 0, 1 )
       };
     }
     
@@ -405,10 +399,10 @@ var mojule = mojule === undefined ? {} : mojule;
     // color less saturated than foo
     function hslSum( hsl, modifiers ) {
       return {
-        hue: ( hsl.hue + [ modifiers.hue, modifiers.h, 0 ].firstDefined() ).wrap( 360 ),
-        saturation: ( hsl.saturation + [ modifiers.saturation, modifiers.s, 0 ].firstDefined() ).clamp( 0, 100 ),
-        lightness: ( hsl.lightness + [ modifiers.lightness, modifiers.l, 0 ].firstDefined() ).clamp( 0, 100 ),
-        alpha: ( hsl.alpha + [ modifiers.alpha, modifiers.a, 0 ].firstDefined() ).clamp( 0, 1 )
+        hue: _( hsl.hue + _( [ modifiers.hue, modifiers.h, 0 ] ).firstDefined() ).wrap( 360 ),
+        saturation: _( hsl.saturation + _( [ modifiers.saturation, modifiers.s, 0 ] ).firstDefined() ).clamp( 0, 100 ),
+        lightness: _( hsl.lightness + _( [ modifiers.lightness, modifiers.l, 0 ] ).firstDefined() ).clamp( 0, 100 ),
+        alpha: _( hsl.alpha + _( [ modifiers.alpha, modifiers.a, 0 ] ).firstDefined() ).clamp( 0, 1 )
       };
     }  
 
@@ -505,10 +499,10 @@ var mojule = mojule === undefined ? {} : mojule;
       return getOrSet({
         value: value,
         setter: function() {
-                  r = [ this.value.red, this.value.r, r, 0 ].firstDefined().clamp( 0, 255 );
-                  g = [ this.value.green, this.value.g, g, 0 ].firstDefined().clamp( 0, 255 );
-                  b = [ this.value.blue, this.value.b, b, 0 ].firstDefined().clamp( 0, 255 );
-                  a = [ this.value.alpha, this.value.a, a, 1 ].firstDefined().clamp( 0, 1 );
+                  r = _( _( [ this.value.red, this.value.r, r, 0 ] ).firstDefined() ).clamp( 0, 255 );
+                  g = _( _( [ this.value.green, this.value.g, g, 0 ] ).firstDefined() ).clamp( 0, 255 );
+                  b = _( _( [ this.value.blue, this.value.b, b, 0 ] ).firstDefined() ).clamp( 0, 255 );
+                  a = _( _( [ this.value.alpha, this.value.a, a, 1 ] ).firstDefined() ).clamp( 0, 1 );
                   
                   var hsl = rgbToHsl( getRgba() );
                   h = hsl.hue;
@@ -531,10 +525,10 @@ var mojule = mojule === undefined ? {} : mojule;
       return getOrSet({
         value: value,
         setter: function(){
-                  h = [ this.value.hue, this.value.h, h, 360 ].firstDefined().wrap( 360 );
-                  s = [ this.value.saturation, this.value.s, s, 0 ].firstDefined().clamp( 0, 100 );
-                  l = [ this.value.lightness, this.value.l, l, 0 ].firstDefined().clamp( 0, 100 );
-                  a = [ this.value.alpha, this.value.a, a, 1 ].firstDefined().clamp( 0, 1 );
+                  h = _( _( [ this.value.hue, this.value.h, h, 360 ] ).firstDefined() ).wrap( 360 );
+                  s = _( _( [ this.value.saturation, this.value.s, s, 0 ] ).firstDefined() ).clamp( 0, 100 );
+                  l = _( _( [ this.value.lightness, this.value.l, l, 0 ] ).firstDefined() ).clamp( 0, 100 );
+                  a = _( _( [ this.value.alpha, this.value.a, a, 1 ] ).firstDefined() ).clamp( 0, 1 );
                   
                   var rgb = hslToRgb( getHsla() );
                   r = rgb.red;
@@ -620,12 +614,12 @@ var mojule = mojule === undefined ? {} : mojule;
     //  Returns whether or not a particular value can be parsed - this method 
     //  is available without an object instance
     mojule.Color.canParse = function( value ) {
-      return parsers.toArray().any( function( item ){ return item.predicate( value ); } );
+      return _( parsers.toArray() ).any( function( item ){ return item.predicate( value ); } );
     };
     
     //  If the value has a parser that can handle it, return its name
     mojule.Color.parserType = function( value ) {
-      var parser = parsers.toArray().first( function( item ){ return item.predicate( value ); } );
+      var parser = _( parsers.toArray() ).first( function( item ){ return item.predicate( value ); } );
       if( parser !== undefined ){ return parser.name; }
     };
     
@@ -678,7 +672,7 @@ var mojule = mojule === undefined ? {} : mojule;
       },
       rgba: {
         predicate: function( value ) {
-                return [ value.red, value.green, value.blue, value.r, value.g, value.b ].anyDefined();
+                return _( [ value.red, value.green, value.blue, value.r, value.g, value.b ] ).anyDefined();
               }, 
         parse: function( value ) {
                 return color.rgba( value );
@@ -686,7 +680,7 @@ var mojule = mojule === undefined ? {} : mojule;
       },
       hsla: {
         predicate: function( value ) {
-                return [ value.hue, value.saturation, value.lightness, value.h, value.s, value.l ].anyDefined();
+                return _( [ value.hue, value.saturation, value.lightness, value.h, value.s, value.l ] ).anyDefined();
               }, 
         parse: function( value ) {
                 return color.hsla( value );
