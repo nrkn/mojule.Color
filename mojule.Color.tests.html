@@ -1,0 +1,673 @@
+<!doctype html>
+<html>
+  <head>
+    <title>mojule.Color tests</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="qunit.css" />
+    <script src="http://code.jquery.com/jquery-1.6.2.min.js"></script>
+    <script src="qunit.js"></script>
+    <script src="mojule.Color.js"></script>
+    <script>
+      $(function () {     
+        function runTests( tests ) {
+          expect( tests.length );
+          for( var i = 0; i < tests.length; i++ ) {
+            var test = tests[ i ];            
+            if( typeof test.expect == 'object' ) {
+              deepEqual(
+                test.result,
+                test.expect,
+                ( test.name ? test.name : '' ) + ( test.description ? test.description : '' ) + '. Expected ' + test.expect + ' as the result, result was: ' + test.result 
+              );            
+              continue;
+            }
+            equal(
+              test.result,
+              test.expect,
+              ( test.name ? test.name : '' ) + ( test.description ? test.description : '' ) + '. Expected ' + test.expect + ' as the result, result was: ' + test.result 
+            );
+          }                      
+        }
+        
+        module( 'mojule.Color' );
+        
+        test( 'mojule.Color Constructor', function(){
+          var pass = '#39f',
+              alphaPass = 'rgba( 51, 153, 255, 0.5 )',
+              tests = [
+                { 
+                  description: 'no args',
+                  value: null,
+                  expect: '#000'
+                },              
+                { 
+                  description: 'rgb object',
+                  value: { red: 51, green: 153, blue: 255 },
+                  expect: pass
+                },
+                { 
+                  description: 'rgba object',
+                  value: { red: 51, green: 153, blue: 255, alpha: 0.5 },
+                  expect: alphaPass
+                },
+                { 
+                  description: 'hsl object',
+                  value: { hue: 210, saturation: 100, lightness: 60 },
+                  expect: pass
+                },
+                { 
+                  description: 'hsla object',
+                  value: { hue: 210, saturation: 100, lightness: 60, alpha: 0.5 },
+                  expect: alphaPass
+                },
+                {
+                  description: 'rgb partial object',
+                  value: { red: 255 },
+                  expect: '#f00'
+                },                
+                {
+                  description: 'hsl partial object',
+                  value: { lightness: 100 },
+                  expect: '#fff'
+                },
+                {
+                  description: 'css hex 3',
+                  value: '#39f',
+                  expect: pass
+                },
+                {
+                  description: 'css hex 6',
+                  value: '#3399ff',
+                  expect: pass
+                },
+                {
+                  description: 'css rgb integer',
+                  value: 'rgb( 51, 153, 255 )',
+                  expect: pass
+                },
+                {
+                  description: 'css rgb percentage',
+                  value: 'rgb( 20%, 60%, 100% )',
+                  expect: pass
+                },
+                {
+                  description: 'css rgba integer',
+                  value: 'rgba( 51, 153, 255, 0.5 )',
+                  expect: alphaPass
+                },
+                {
+                  description: 'css rgba percentage',
+                  value: 'rgba( 20%, 60%, 100%, 0.5 )',
+                  expect: alphaPass
+                },
+                { 
+                  description: 'css hsl',
+                  value: 'hsl( 210, 100%, 60% )',
+                  expect: pass
+                },
+                { 
+                  description: 'css hsla',
+                  value: 'hsla( 210, 100%, 60%, 0.5 )',
+                  expect: alphaPass
+                },
+                {
+                  description: 'named color',
+                  value: 'dodgerblue',
+                  expect: '#1e90ff'
+                },
+                {
+                  description: 'existing color',
+                  value: new Color( '#39f' ),
+                  expect: pass
+                }
+              ];
+              
+          function result( test ) {
+            return new Color( test.value ).css()
+          }     
+
+          for( var i = 0; i < tests.length; i++ ) {
+            tests[ i ].result = result( tests[ i ] );
+          }  
+          
+          runTests( tests );
+        });
+        
+        test( 'mojule.Color Informative functions', function(){
+          var rgbaObject = { red: 51, green: 153, blue: 255, alpha: 0.5 },
+              color = new Color( rgbaObject ),
+              tests = [
+                { 
+                  name: 'red',
+                  expect: 51
+                },
+                {
+                  name: 'green',
+                  expect: 153
+                },
+                {
+                  name: 'blue',
+                  expect: 255
+                },
+                {
+                  name: 'hue',
+                  expect: 210
+                },
+                {
+                  name: 'saturation',
+                  expect: 100
+                },
+                {
+                  name: 'lightness',
+                  expect: 60
+                },
+                {
+                  name: 'alpha',
+                  expect: 0.5
+                },
+                {
+                  name: 'css',
+                  expect: 'rgba( 51, 153, 255, 0.5 )'
+                },
+                {
+                  name: 'hex',
+                  expect: '#39f'
+                },
+                {
+                  name: 'brightness',
+                  expect: 134.13
+                },
+                {
+                  name: 'brightnessDifference',
+                  args: [ new Color( '#fff' ) ],
+                  expect: 120.87
+                },
+                {
+                  name: 'colorDifference',
+                  args: [ new Color( '#f90' ) ],
+                  expect: 459
+                },
+                {
+                  name: 'hasEnoughContrast',
+                  args: [ new Color( '#f90' ) ],
+                  expect: false
+                },
+                {
+                  name: 'hasEnoughContrast',
+                  description: ' with args to reduce threshold',
+                  args: [ new Color( '#f90' ), 450, 30 ],
+                  expect: true
+                },
+                {
+                  name: 'rgb',
+                  expect: {
+                    red: 51,
+                    green: 153,
+                    blue: 255,
+                    alpha: 0.5,
+                    css: 'rgba( 51, 153, 255, 0.5 )'
+                  }
+                },
+                {
+                  name: 'rgba',
+                  expect: {
+                    red: 51,
+                    green: 153,
+                    blue: 255,
+                    alpha: 0.5,
+                    css: 'rgba( 51, 153, 255, 0.5 )'
+                  }
+                },
+                {
+                  name: 'hsl',
+                  expect: {
+                    hue: 210,
+                    saturation: 100,
+                    lightness: 60,
+                    alpha: 0.5,
+                    css: 'hsla( 210, 100%, 60%, 0.5 )'
+                  }
+                },                
+                {
+                  name: 'hsla',
+                  expect: {
+                    hue: 210,
+                    saturation: 100,
+                    lightness: 60,
+                    alpha: 0.5,
+                    css: 'hsla( 210, 100%, 60%, 0.5 )'
+                  }
+                },
+                {
+                  name: 'getContrastingTone',
+                  expect: '#fff',
+                  result: color.getContrastingTone().css()
+                },
+                {
+                  name: 'clone',
+                  expect: 'rgba( 51, 153, 255, 0.5 )',
+                  result: color.clone().css()
+                }
+              ];
+              
+          function result( test ) {
+            //IE<9 does NOT like you trying to call apply with undefined
+            if( test.args !== undefined ) {
+              return color[ test.name ].apply( color, test.args );
+            }
+            return color[ test.name ]();          
+          }
+          
+          for( var i = 0; i < tests.length; i++ ) {
+            if( tests[ i ].result === undefined ) {
+              tests[ i ].result = result( tests[ i ] );
+            }
+          }         
+          
+          runTests( tests );        
+        });
+        
+        test( 'mojule.Color Modifying functions', function(){
+          var color,
+              tests = [
+                { 
+                  args: [ 255 ],
+                  name: 'red',
+                  expect: '#f00'
+                },
+                { 
+                  args: [ 255 ],
+                  name: 'green',
+                  expect: '#0f0'
+                },
+                { 
+                  args: [ 255 ],
+                  name: 'blue',
+                  expect: '#00f'
+                },
+                { 
+                  args: [ 210 ],
+                  name: 'hue',
+                  expect: '#007fff',
+                  initialColor: '#f00'
+                },  
+                {
+                  args: [ 50 ],
+                  name: 'saturation',
+                  expect: '#bf4040',
+                  initialColor: '#f00'
+                },                
+                {
+                  args: [ 25 ],
+                  name: 'lightness',
+                  expect: '#800000',
+                  initialColor: '#f00'
+                },
+                {
+                  args: [ 0.5 ],
+                  name: 'alpha',
+                  expect: 'rgba( 255, 0, 0, 0.5 )',
+                  initialColor: '#f00'
+                },
+                {
+                  args: [{red: 51, green: 153, blue: 255}],
+                  name: 'rgb',
+                  expect: '#39f'
+                },                
+                {
+                  args: [{r: 51, g: 153, b: 255}],
+                  name: 'rgb',
+                  expect: '#39f'
+                },
+                {
+                  args: [{red: 51, green: 153, blue: 255, alpha: 0.5}],
+                  name: 'rgba',
+                  expect: 'rgba( 51, 153, 255, 0.5 )'
+                },                
+                {
+                  args: [{r: 51, g: 153, b: 255, a: 0.5}],
+                  name: 'rgba',
+                  expect: 'rgba( 51, 153, 255, 0.5 )'
+                },
+                {
+                  args: [{hue: 210, saturation: 100, lightness: 60}],
+                  name: 'hsl',
+                  expect: '#39f'
+                },                 
+                {
+                  args: [{h: 210, s: 100, l: 60}],
+                  name: 'hsl',
+                  expect: '#39f'
+                },                 
+                {
+                  args: [{hue: 210, saturation: 100, lightness: 60, alpha: 0.5}],
+                  name: 'hsla',
+                  expect: 'rgba( 51, 153, 255, 0.5 )'
+                },                
+                {
+                  args: [{h: 210, s: 100, l: 60, a: 0.5}],
+                  name: 'hsla',
+                  expect: 'rgba( 51, 153, 255, 0.5 )'
+                },                
+                {
+                  args: ['#39f'],
+                  name: 'hex',
+                  expect: '#39f'
+                },                 
+                {
+                  args: [{hue: 0.5, saturation: 0.5, lightness: 0.5, alpha: 0.5}],
+                  name: 'multiplyHsla',
+                  expect: 'rgba( 57, 115, 38, 0.5 )',
+                  initialColor: '#39f'
+                },                
+                {
+                  args: [{hue: -105, saturation: -50, lightness: -30, alpha: -0.5}],
+                  name: 'sumHsla',
+                  expect: 'rgba( 57, 115, 38, 0.5 )',
+                  initialColor: '#39f'                  
+                }              
+              ];
+          
+          function result( test ) {
+            var color = new Color( test.initialColor );
+            return color[ test.name ].apply( color, test.args ).css();
+          }
+          
+          for( var i = 0; i < tests.length; i++ ) {
+            tests[ i ].result = result( tests[ i ] );
+          }             
+          
+          runTests( tests );
+        });
+        
+        module( 'mojule.Color Static Functions' );
+        
+        test( 'mojule.Color.range', function(){
+          expect( 16 );
+          
+          var noargs = Color.range();
+          
+          equal(
+            noargs.length,
+            2,
+            'No args, checking length. Expected 2 as the result, result was: ' + noargs.length
+          );
+          
+          equal(
+            noargs[ 0 ].css(),
+            '#000',
+            'No args, checking first element for default color. Expected #000 as the result, result was: ' + noargs[ 0 ].css()
+          );
+          
+          equal(
+            noargs[ 1 ].css(),
+            '#000',
+            'No args, checking last element for default color. Expected #000 as the result, result was: ' + noargs[ 1 ].css()
+          );
+          
+          var onestep = Color.range( '#39f', '#f90', 1 );
+          
+          equal(
+            onestep.length,
+            2,
+            'Steps specified as < 2, checking length. Expected 2 as the result, result was: ' + onestep.length
+          );
+          
+          equal(
+            onestep[ 0 ].css(),
+            '#39f',
+            'Steps specified as < 2, checking first element. Expected #39f as the result, result was: ' + onestep[ 0 ].css()
+          ); 
+          
+          equal(
+            onestep[ 1 ].css(),
+            '#f90',
+            'Steps specified as < 2, checking last element. Expected #f90 as the result, result was: ' + onestep[ 1 ].css()
+          );
+          
+          var threestep = Color.range( '#39f', '#f90', 3 ); 
+          
+          equal(
+            threestep.length,
+            3,
+            'Steps specified 3, checking length. Expected 3 as the result, result was: ' + threestep.length
+          );
+          
+          equal(
+            threestep[ 1 ].css(),
+            '#1aff25',
+            'Steps specified as 3, checking middle element. Expected #1aff25 as the result, result was: ' + threestep[ 1 ].css()
+          );
+          
+          var hueStart = {
+            hue: 0,
+            saturation: 100,
+            lightness: 50
+          };
+          
+          var hueEnd = {
+            hue: 180
+          };
+          
+          var hueRange = Color.range( hueStart, hueEnd, 3 );
+          
+          equal(
+            hueRange[ 1 ].css(),
+            '#80ff00',
+            'Partial arguments for hue, checking middle element. Expected #448700 as the result, result was: ' + hueRange[ 1 ].css()
+          );
+          
+          var satStart = {
+            hue: 210,
+            saturation: 100,
+            lightness: 50
+          };
+          
+          var satEnd = {
+            saturation: 0
+          };
+          
+          var satRange = Color.range( satStart, satEnd, 3 );
+          
+          equal(
+            satRange[ 1 ].css(),
+            '#407fbf',
+            'Partial arguments for saturation, checking middle element. Expected #407fbf as the result, result was: ' + satRange[ 1 ].css()
+          ); 
+
+          var litStart = {
+            hue: 210,
+            saturation: 100,
+            lightness: 0
+          };
+          
+          var litEnd = {
+            lightness: 100
+          };
+          
+          var litRange = Color.range( litStart, litEnd, 3 );
+          
+          equal(
+            litRange[ 1 ].css(),
+            '#007fff',
+            'Partial arguments for saturation, checking middle element. Expected #007fff as the result, result was: ' + litRange[ 1 ].css()
+          );
+          
+          ok(
+            Color.canParse( '#39f' ),
+            'canParse a valid color. Expected true as the result, result was: ' + Color.canParse( '#39f' )
+          );
+          
+          var colorArray = [ 51, 153, 255, 0.5 ];
+          
+          ok(
+            !Color.canParse( colorArray ),
+            'canParse an invalid color. Expected false as the result, result was: ' + Color.canParse( colorArray )
+          );
+          
+          var arrayParser = {
+            predicate:  function( value ) {
+                          return value instanceof Array && value.length > 0;
+                        },
+            parse:  function( value, color ) {
+              var rgba = {};
+              rgba[ 'red' ] = value[ 0 ];
+              if( value.length > 1 ) {
+                rgba[ 'green' ] = value[ 1 ];
+              }
+              if( value.length > 2 ) {
+                rgba[ 'blue' ] = value[ 2 ];
+              }
+              if( value.length > 3 ) {
+                rgba[ 'alpha' ] = value[ 3 ];
+              }
+              return color.rgba( rgba );
+            }
+          }; 
+
+          Color.addParser( 'array', arrayParser );
+          
+          ok(
+            Color.canParse( colorArray ),
+            'check canParse after calling addParser. Expected true as the result, result was: ' + Color.canParse( colorArray )
+          ); 
+
+          equals(
+            new Color( colorArray ).css(),
+            'rgba( 51, 153, 255, 0.5 )',
+            'results of added parser. Expected rgba( 51, 153, 255, 0.5 ) as the result, result was: ' + new Color( colorArray ).css()
+          )
+          
+          Color.removeParser( 'array' );
+          ok(
+            !Color.canParse( colorArray ),
+            'check canParse after calling removeParser. Expected false as the result, result was: ' + Color.canParse( colorArray )
+          ); 
+        }); 
+
+        module( 'Prototype Extensions' );  
+        
+        test( 'Number.prototype.clamp', function() {  
+          expect( 3 );  
+          
+          equals( 
+            ( 4 ).clamp( 5, 10 ),  
+            5,  
+            'Lower bounds. Clamp 4 to range 5..10. Expected 5 as the result, result was: ' + ( 4 ).clamp( 5, 10 ) 
+          ); 
+          
+          equals( 
+            ( 11 ).clamp( 5, 10 ),  
+            10,  
+            'Upper bounds. Clamp 11 to range 5..10. Expected 10 as the result, result was: ' + ( 11 ).clamp( 5, 10 ) 
+          ); 
+          
+          equals( 
+            ( 7 ).clamp( 5, 10 ),  
+            7,  
+            'Inside range. Clamp 7 to range 5..10. Expected 7 as the result, result was: ' + ( 7 ).clamp( 5, 10 ) 
+          );  
+        });
+        
+        test( 'Number.prototype.wrap', function() {  
+          expect( 3 );  
+          
+          equals( 
+            ( -180 ).wrap( 360 ),  
+            180,  
+            'Lower bounds. -180 with a range of 360. Expected 180 as the result, result was: ' + ( -180 ).wrap( 360 )
+          ); 
+          
+          equals( 
+            ( 540 ).wrap( 360 ),  
+            180,  
+            'Upper bounds. 540 with a range of 360. Expected 180 as the result, result was: ' + ( 540 ).wrap( 360 )
+          );
+          
+          equals( 
+            ( 180 ).wrap( 360 ),  
+            180,  
+            'Inside range. 180 with a range of 360. Expected 180 as the result, result was: ' + ( 180 ).wrap( 360 )
+          );  
+        });
+        
+        var items = [ 'one', 'two', 'three' ];
+        var passPredicate = function( item ){ return item.length > 3 };
+        var failPredicate = function( item ){ return item.length > 5 };
+        
+        test( 'Array.prototype.first', function() {
+          expect( 3 );
+          
+          equals(
+            items.first(),
+            'one',
+            'No args should return first member of array. Expected "one" as the result, result was: ' + items.first()            
+          );
+          
+          equals(
+            items.first( passPredicate ),
+            'three',
+            'Test predicate is length > 3. Expected "three" as the result, result was: ' + items.first( passPredicate )
+          );
+          
+          equals(
+            items.first( failPredicate ),
+            undefined,
+            'Test predicate is length > 5. Expected undefined as the result, result was: ' + items.first( failPredicate )
+          );
+        });
+        
+        
+        test( 'Array.prototype.any', function() {
+          expect( 2 );
+          
+          ok(
+            items.any( passPredicate ),
+            'Test predicate is length > 3. Expected true as the result, result was: ' + items.any( passPredicate )
+          );
+          
+          ok(
+            !items.any( failPredicate ),
+            'Test predicate is length > 5. Expected false as the result, result was: ' + items.any( failPredicate )
+          );
+        });  
+
+        test( 'Array.prototype.trim', function() {
+          expect( 4 );
+          
+          var trimmed = 'one two';
+          
+          equal(
+            trimmed.trim(),
+            trimmed,
+            'No spaces to trim. Expected "one two" as the result, result was: ' + trimmed
+          );
+          
+          equal(
+            '  one two'.trim(),
+            trimmed,
+            'Left spaces to trim. Expected "one two" as the result, result was: ' + '  one two'.trim()
+          );
+          
+          equal(
+            'one two  '.trim(),
+            trimmed,
+            'Right spaces to trim. Expected "one two" as the result, result was: ' + 'one two  '.trim()
+          );
+          
+          equal(
+            '  one two  '.trim(),
+            trimmed,
+            'Left and right spaces to trim. Expected "one two" as the result, result was: ' + '  one two  '.trim()
+          );
+        });        
+      });
+    </script>
+  </head>
+  <body>
+    <h1 id="qunit-header">QUnit mojule.Color</h1>  
+    <h2 id="qunit-banner"></h2>  
+    <h2 id="qunit-userAgent"></h2>  
+    <ol id="qunit-tests">    
+  </body>
+</html>  
