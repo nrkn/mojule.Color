@@ -4,7 +4,7 @@
 
 A comprehensive JavaScript color class.
 
-Part of [***mojule***][0]
+Part of [***mojule***][0]  
 Copyright 2011, [Information Age Ltd][1]  
 Licensed under the [MIT License][2]
 
