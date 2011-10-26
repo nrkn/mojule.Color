@@ -383,7 +383,7 @@
         module( 'mojule.Color Static Functions' );
         
         test( 'mojule.Color.range', function(){
-          expect( 16 );
+          expect( 18 );
           
           var noargs = Color.range();
           
@@ -498,6 +498,17 @@
             'canParse a valid color. Expected true as the result, result was: ' + Color.canParse( '#39f' )
           );
           
+          ok(
+            Color.canParse( 'dodgerblue' ),
+            'canParse a valid named color. Expected true as the result, result was: ' + Color.canParse( 'dodgerblue' )
+          );
+          
+          equal(
+            Color.parserType( 'dodgerblue' ),
+            'cssNamedColor',
+            'checking parserType for named color. Expected "cssNamedColor" as the result, result was: ' + Color.parserType( 'dodgerblue' )
+          );
+          
           var colorArray = [ 51, 153, 255, 0.5 ];
           
           ok(
@@ -539,6 +550,7 @@
           )
           
           Color.removeParser( 'array' );
+          
           ok(
             !Color.canParse( colorArray ),
             'check canParse after calling removeParser. Expected false as the result, result was: ' + Color.canParse( colorArray )

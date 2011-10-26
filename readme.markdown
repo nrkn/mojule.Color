@@ -1,5 +1,5 @@
 #***mojule***  
-#mojule.Color v1.01
+#mojule.Color v1.02
 
 A comprehensive JavaScript color class.
 
@@ -713,7 +713,8 @@ Examples:
 ###.addParser( name, parser )
 
 Adds a user-defined parser to handle other color formats. `name` should be a 
-descriptive unique identifier for the parser. `parser` should be an object like:
+descriptive unique identifier for the parser. If `name` is not unique, it will
+overwrite the existing parser of that name. `parser` should be an object like:
 
 ``` js
 {

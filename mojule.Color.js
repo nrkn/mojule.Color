@@ -1,5 +1,5 @@
 /*!
- * mojule.Color v1.01
+ * mojule.Color v1.02
  * A comprehensive JavaScript color class
  * http://mojule.co.nz/
  *
@@ -10,12 +10,10 @@
  */
 /*
   TODO
-    generate themes
-    get complementary colors    
-    cmyk?
-    hsv?
+    generate themes?
+    get complementary colors?
+    toGradient (ie lighter to darker of same color, subtlety arg)
     modify / blend / overlay / photoshop modes?
-    24 bit under hood to reduce lossiness?
 */
 
 //  Declare but don't overwrite mojule if it already exists - this way parts of 
@@ -24,7 +22,7 @@ var mojule = mojule === undefined ? {} : mojule;
 
 (function(){
   'use strict';
-
+  
   //  Extend functionality without monkeypatching native objects
   var _ = function( value ) {
     var extensions = {
@@ -107,6 +105,169 @@ var mojule = mojule === undefined ? {} : mojule;
     return extensions[ value instanceof Array ? 'array' : typeof value ];
   };
  
+
+  //  The relative brightness of an rgb value
+  function rgbToBrightness( rgb ) {
+    return rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114;
+  }
+
+  //  Difference in brightness between two rgb colors
+  function rgbBrightnessDifference( rgb1, rgb2 ) {
+    return Math.abs( rgbToBrightness( rgb1 ) - rgbToBrightness( rgb2 ) );
+  }
+
+  //  Difference in color between two rgb colors
+  function rgbColorDifference( rgb1, rgb2 ) {
+    var redMax = Math.max( rgb1.red, rgb2.red ),
+        redMin = Math.min( rgb1.red, rgb2.red ),    
+        greenMax = Math.max( rgb1.green, rgb2.green ),
+        greenMin = Math.min( rgb1.green, rgb2.green ),    
+        blueMax = Math.max( rgb1.blue, rgb2.blue ),
+        blueMin = Math.min( rgb1.blue, rgb2.blue );
+    
+    return redMax - redMin + ( greenMax - greenMin ) + ( blueMax - blueMin );
+  }
+  
+  //  Convert from the rgb to hsl color space
+  function rgbToHsl( rgb ){
+    var r = rgb.red / 255,
+        g = rgb.green / 255,
+        b = rgb.blue / 255,   
+        max = Math.max( r, g, b ),
+        min = Math.min( r, g, b ),
+        h, 
+        s, 
+        l = (max + min) / 2,
+        d = max - min;
+
+    if( max === min ){
+      h = s = 0; // achromatic
+    } else {
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    return { hue: h * 360, saturation: s * 100, lightness: l * 100 };
+  }
+
+  //  Convert from the hsl to rgb color space
+  function hslToRgb( hsl ){
+    var h = hsl.hue / 360,
+        s = hsl.saturation / 100,
+        l = hsl.lightness / 100,
+        r, 
+        g, 
+        b,
+        hue2rgb = function( p, q, t ){
+          if( t < 0 ){ t += 1; }
+          if( t > 1 ){ t -= 1; }
+          if( t < 1 / 6 ){ return p + ( q - p ) * 6 * t; }
+          if( t < 1 / 2 ){ return q; }
+          if( t < 2 / 3 ){ return p + ( q - p ) * ( 2 / 3 - t ) * 6; }
+          return p;
+        },
+        q = l < 0.5 ? l * ( 1 + s ) : l + s - l * s,
+        p = 2 * l - q;
+
+    if( s === 0 ){
+      r = g = b = l; // achromatic
+    } else {
+      r = hue2rgb( p, q, h + 1 / 3 );
+      g = hue2rgb( p, q, h );
+      b = hue2rgb( p, q, h - 1 / 3 );
+    }
+
+    return {
+      red: r * 255,
+      green: g * 255,
+      blue: b * 255
+    };
+  }
+
+  //  Convert from a 3 or 6 digit hex color (with or without leading #) to an
+  //  rgb color
+  function hexToRgb( hex ) {
+    if( hex.substr( 0, 1 ) === '#' ){ hex = hex.substr( 1 ); }
+    
+    if( hex.length === 3 ) {
+      return {
+        red: parseInt( hex.substr( 0 , 1 ) + hex.substr( 0 , 1 ), 16 ),
+        green: parseInt( hex.substr( 1 , 1 ) + hex.substr( 1 , 1 ), 16 ),
+        blue: parseInt( hex.substr( 2 , 1 ) + hex.substr( 2 , 1 ), 16 )
+      };              
+    }
+    
+    return {
+      red: parseInt( hex.substr( 0 , 2 ), 16 ),
+      green: parseInt( hex.substr( 2 , 2 ), 16 ),
+      blue: parseInt( hex.substr( 4 , 2 ), 16 )
+    };                          
+  }
+  
+  //  Convert a decimal number to it's hexadecimal form
+  function decToHex( d ) {
+    var hex = d.toString( 16 );
+    
+    return hex.length < 2 ? '0' + hex : hex;
+  }
+  
+  //  Convert an rgb color to a 6 digit hex color, or a 3 digit hex color where
+  //  possible, with a leading #
+  function rgbToHex( rgb ) {
+    var r = decToHex( Math.round( rgb.red ) ),
+        g = decToHex( Math.round( rgb.green ) ),
+        b = decToHex( Math.round( rgb.blue ) );
+    
+    return "#" + ( r.charAt( 0 ) === r.charAt( 1 ) && g.charAt( 0 ) === g.charAt( 1 ) && b.charAt( 0 ) === b.charAt( 1 ) ? r.charAt( 0 ) + g.charAt( 0 ) + b.charAt( 0 ) : r + g + b );
+  }
+
+  //  Modify an hsl color by multiplying the values together with the values 
+  //  specified in modifiers, ie hslMultiply( foo, { lightness: 0.5 } ) will
+  //  make a color half as bright as foo
+  function hslMultiply( hsl, modifiers ) {
+    return {
+      hue: _( hsl.hue * _( [ modifiers.hue, modifiers.h, 1 ] ).firstDefined() ).wrap( 360 ),
+      saturation: _( hsl.saturation * _( [ modifiers.saturation, modifiers.s, 1 ] ).firstDefined() ).clamp( 0, 100 ),
+      lightness: _(  hsl.lightness * _( [ modifiers.lightness, modifiers.l, 1 ] ).firstDefined() ).clamp( 0, 100 ),
+      alpha: _( hsl.alpha * _( [ modifiers.alpha, modifiers.a, 1 ] ).firstDefined() ).clamp( 0, 1 )
+    };
+  }
+  
+  // Modify an hsl color by summing the values together with the values 
+  // specified in modifiers, ie hslSum( foo, { saturation: -25 } ) will make a 
+  // color less saturated than foo
+  function hslSum( hsl, modifiers ) {
+    return {
+      hue: _( hsl.hue + _( [ modifiers.hue, modifiers.h, 0 ] ).firstDefined() ).wrap( 360 ),
+      saturation: _( hsl.saturation + _( [ modifiers.saturation, modifiers.s, 0 ] ).firstDefined() ).clamp( 0, 100 ),
+      lightness: _( hsl.lightness + _( [ modifiers.lightness, modifiers.l, 0 ] ).firstDefined() ).clamp( 0, 100 ),
+      alpha: _( hsl.alpha + _( [ modifiers.alpha, modifiers.a, 0 ] ).firstDefined() ).clamp( 0, 1 )
+    };
+  }  
+
+  // Determines whether the color would be more readable against black or white
+  // and returns black or white accordingly. Useful for making sure that text of
+  // an arbitrary color remains readable, ie black or white text against a
+  // colored background or colored text on a black or white background
+  function toneFromRgb( rgb ) {
+    var white = { red: 255, green: 255, blue: 255 },
+        black = { red: 0, green: 0, blue: 0 },
+        whiteDifference = rgbBrightnessDifference( rgb, white ),
+        blackDifference = rgbBrightnessDifference( rgb, black ) - 30;
+    
+    return blackDifference > whiteDifference ? black : white;
+  }
+  
+  // If data.value is not defined use the getter, otherwise use the setter
+  function getOrSet( data ) {
+    return data.value !== undefined ? data.setter() : data.getter();
+  }   
+ 
   // Constructor will try to figure out what value is, see mojule.Color.parse
   mojule.Color = function( value ){
     var r = 0, 
@@ -116,13 +277,8 @@ var mojule = mojule === undefined ? {} : mojule;
         s = 0, 
         l = 0, 
         a = 1,
-        color = this,
-        parsers;
-    
-    // All of the functions declared in the form function foo(...){...} are 
-    // private and used internally, functions declared like 
-    // this.foo = function(...){...} are exposed publically
-    
+        color = this;
+   
     // An object with rgba and css information
     function getRgba() {
       return {
@@ -145,284 +301,22 @@ var mojule = mojule === undefined ? {} : mojule;
       };
     }
     
-    //  Following functions starting with is... test a string to see if it matches 
-    //  a given CSS3 color value
-    function isHex( value ) {       
-      return typeof value === 'string' && ( /^#(?:[0-9a-f]{3,6})\b$/i ).test( _( value ).trim() );
-    }  
-    
-    function isRgbInt( value ) {
-      return typeof value === 'string' && ( /^rgb\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i ).test( _( value ).trim() );
-    }   
-    
-    function isRgbPercent( value ) {
-      return typeof value === 'string' && ( /^rgb\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
-    }
-    
-    function isRgbaInt( value ) {
-      return typeof value === 'string' && ( /^rgba\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
-    }   
-    
-    function isRgbaPercent( value ) {
-      return typeof value === 'string' && ( /^rgba\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
-    }
-    
-    function isHsl( value ) {
-      return typeof value === 'string' && ( /^hsl\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
-    }
-    
-    function isHsla( value ) {
-      return typeof value === 'string' && ( /^hsla\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
-    }
-    
-    function isNamedColor( value ) {
-      return typeof value === 'string' && mojule.Color.namedColors[ _( value ).trim() ] !== undefined;
-    }
-    
-    // Following functions starting with parse... set the current color from the   
-    // passed in CSS3 color value
-    function parseRgbInt( value ) {
-      var matches = _( value ).trim().match( /^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i );
-      return color.rgba({ 
-        red: parseInt( matches[ 1 ], 10 ), 
-        green: parseInt( matches[ 2 ], 10 ), 
-        blue: parseInt( matches[ 3 ], 10 )
-      });
-    }
-    
-    function parseRgbPercent( value ) {
-      var matches = _( value ).trim().match( /^rgb\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
-      return color.rgba({  
-        red: parseInt( matches[ 1 ], 10 ) * 2.55,  
-        green: parseInt( matches[ 2 ], 10 ) * 2.55, 
-        blue: parseInt( matches[ 3 ], 10 ) * 2.55,
-        alpha: 1
-      });
-    }
-    
-    function parseRgbaInt( value ) {
-      var matches = _( value ).trim().match( /^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
-      return color.rgba({  
-        red: parseInt( matches[ 1 ], 10 ), 
-        green: parseInt( matches[ 2 ], 10 ), 
-        blue: parseInt( matches[ 3 ], 10 ),
-        alpha: parseFloat( matches[ 4 ], 10 )
-      });    
-    }
-    
-    function parseRgbaPercent( value ) {
-      var matches = _( value ).trim().match( /^rgba\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
-      return color.rgba({ 
-        red: parseInt( matches[ 1 ], 10 ) * 2.55,  
-        green: parseInt( matches[ 2 ], 10 ) * 2.55, 
-        blue: parseInt( matches[ 3 ], 10 ) * 2.55,
-        alpha: parseFloat( matches[ 4 ], 10 )
-      });    
-    }
-    
-    function parseHsl( value ) {
-      var matches = _( value ).trim().match( /^hsl\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
-      return color.hsla({  
-        hue: parseInt( matches[ 1 ], 10 ),
-        saturation: parseInt( matches[ 2 ], 10 ),
-        lightness: parseInt( matches[ 3 ], 10 ),
-        alpha: 1
-      });  
-    }
-    
-    function parseHsla( value ) {
-      var matches = _( value ).trim().match( /^hsla\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
-      return color.hsla({  
-        hue: parseInt( matches[ 1 ], 10 ),
-        saturation: parseInt( matches[ 2 ], 10 ),
-        lightness: parseInt( matches[ 3 ], 10 ),
-        alpha: parseFloat( matches[ 4 ], 10 )
-      });      
-    }
-    
-    function parseNamedColor( value ) {
-      return ( color = mojule.Color.namedColors[ _( value ).trim() ] );
-    }
-    
     //  Determines if value is something we can deal with and if so set the color
     //  from value.
     //
     //  Currently we can deal with valid CSS3 color values as strings, our own 
     //  Color class, and objects with properties for rgba/hsla values.
-    function parse( value ) {
-      
-      var parser = _( parsers.toArray() ).first(function(item){
-            return item.predicate( value );
-          });
+    function parse( value ) {      
+      var parser = _( mojule.Color.parsers.toArray() ).first(function(item){
+        return item.predicate( value );
+      });
           
       if( !parser ) { return undefined; }
       
       //  The built-in parsers have access to color as it's in scope but we need to
       //  pass it through for plug-in parsers
       return parser.parse( value, color );
-    } 
-    
-    //  The relative brightness of an rgb value
-    function rgbToBrightness( rgb ) {
-      return rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114;
-    }
-
-    //  Difference in brightness between two rgb colors
-    function rgbBrightnessDifference( rgb1, rgb2 ) {
-      return Math.abs( rgbToBrightness( rgb1 ) - rgbToBrightness( rgb2 ) );
-    }
-
-    //  Difference in color between two rgb colors
-    function rgbColorDifference( rgb1, rgb2 ) {
-      var redMax = Math.max( rgb1.red, rgb2.red ),
-          redMin = Math.min( rgb1.red, rgb2.red ),    
-          greenMax = Math.max( rgb1.green, rgb2.green ),
-          greenMin = Math.min( rgb1.green, rgb2.green ),    
-          blueMax = Math.max( rgb1.blue, rgb2.blue ),
-          blueMin = Math.min( rgb1.blue, rgb2.blue );
-      
-      return redMax - redMin + ( greenMax - greenMin ) + ( blueMax - blueMin );
-    }
-    
-    //  Convert from the rgb to hsl color space
-    function rgbToHsl( rgb ){
-      var r = rgb.red / 255,
-          g = rgb.green / 255,
-          b = rgb.blue / 255,   
-          max = Math.max( r, g, b ),
-          min = Math.min( r, g, b ),
-          h, 
-          s, 
-          l = (max + min) / 2,
-          d = max - min;
-
-      if( max === min ){
-        h = s = 0; // achromatic
-      } else {
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch(max){
-          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-          case g: h = (b - r) / d + 2; break;
-          case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-      }
-
-      return { hue: h * 360, saturation: s * 100, lightness: l * 100 };
-    }
-
-    //  Convert from the hsl to rgb color space
-    function hslToRgb( hsl ){
-      var h = hsl.hue / 360,
-          s = hsl.saturation / 100,
-          l = hsl.lightness / 100,
-          r, 
-          g, 
-          b,
-          hue2rgb = function( p, q, t ){
-            if( t < 0 ){ t += 1; }
-            if( t > 1 ){ t -= 1; }
-            if( t < 1 / 6 ){ return p + ( q - p ) * 6 * t; }
-            if( t < 1 / 2 ){ return q; }
-            if( t < 2 / 3 ){ return p + ( q - p ) * ( 2 / 3 - t ) * 6; }
-            return p;
-          },
-          q = l < 0.5 ? l * ( 1 + s ) : l + s - l * s,
-          p = 2 * l - q;
-
-      if( s === 0 ){
-        r = g = b = l; // achromatic
-      } else {
-        r = hue2rgb( p, q, h + 1 / 3 );
-        g = hue2rgb( p, q, h );
-        b = hue2rgb( p, q, h - 1 / 3 );
-      }
-
-      return {
-        red: r * 255,
-        green: g * 255,
-        blue: b * 255
-      };
-    }
-
-    //  Convert from a 3 or 6 digit hex color (with or without leading #) to an
-    //  rgb color
-    function hexToRgb( hex ) {
-      if( hex.substr( 0, 1 ) === '#' ){ hex = hex.substr( 1 ); }
-      
-      if( hex.length === 3 ) {
-        return {
-          red: parseInt( hex.substr( 0 , 1 ) + hex.substr( 0 , 1 ), 16 ),
-          green: parseInt( hex.substr( 1 , 1 ) + hex.substr( 1 , 1 ), 16 ),
-          blue: parseInt( hex.substr( 2 , 1 ) + hex.substr( 2 , 1 ), 16 )
-        };              
-      }
-      
-      return {
-        red: parseInt( hex.substr( 0 , 2 ), 16 ),
-        green: parseInt( hex.substr( 2 , 2 ), 16 ),
-        blue: parseInt( hex.substr( 4 , 2 ), 16 )
-      };                          
-    }
-    
-    //  Convert a decimal number to it's hexadecimal form
-    function decToHex( d ) {
-      var hex = d.toString( 16 );
-      
-      return hex.length < 2 ? '0' + hex : hex;
-    }
-    
-    //  Convert an rgb color to a 6 digit hex color, or a 3 digit hex color where
-    //  possible, with a leading #
-    function rgbToHex( rgb ) {
-      var r = decToHex( Math.round( rgb.red ) ),
-          g = decToHex( Math.round( rgb.green ) ),
-          b = decToHex( Math.round( rgb.blue ) );
-      
-      return "#" + ( r.charAt( 0 ) === r.charAt( 1 ) && g.charAt( 0 ) === g.charAt( 1 ) && b.charAt( 0 ) === b.charAt( 1 ) ? r.charAt( 0 ) + g.charAt( 0 ) + b.charAt( 0 ) : r + g + b );
-    }
-
-    //  Modify an hsl color by multiplying the values together with the values 
-    //  specified in modifiers, ie hslMultiply( foo, { lightness: 0.5 } ) will
-    //  make a color half as bright as foo
-    function hslMultiply( hsl, modifiers ) {
-      return {
-        hue: _( hsl.hue * _( [ modifiers.hue, modifiers.h, 1 ] ).firstDefined() ).wrap( 360 ),
-        saturation: _( hsl.saturation * _( [ modifiers.saturation, modifiers.s, 1 ] ).firstDefined() ).clamp( 0, 100 ),
-        lightness: _(  hsl.lightness * _( [ modifiers.lightness, modifiers.l, 1 ] ).firstDefined() ).clamp( 0, 100 ),
-        alpha: _( hsl.alpha * _( [ modifiers.alpha, modifiers.a, 1 ] ).firstDefined() ).clamp( 0, 1 )
-      };
-    }
-    
-    // Modify an hsl color by summing the values together with the values 
-    // specified in modifiers, ie hslSum( foo, { saturation: -25 } ) will make a 
-    // color less saturated than foo
-    function hslSum( hsl, modifiers ) {
-      return {
-        hue: _( hsl.hue + _( [ modifiers.hue, modifiers.h, 0 ] ).firstDefined() ).wrap( 360 ),
-        saturation: _( hsl.saturation + _( [ modifiers.saturation, modifiers.s, 0 ] ).firstDefined() ).clamp( 0, 100 ),
-        lightness: _( hsl.lightness + _( [ modifiers.lightness, modifiers.l, 0 ] ).firstDefined() ).clamp( 0, 100 ),
-        alpha: _( hsl.alpha + _( [ modifiers.alpha, modifiers.a, 0 ] ).firstDefined() ).clamp( 0, 1 )
-      };
-    }  
-
-    // Determines whether the color would be more readable against black or white
-    // and returns black or white accordingly. Useful for making sure that text of
-    // an arbitrary color remains readable, ie black or white text against a
-    // colored background or colored text on a black or white background
-    function toneFromRgb( rgb ) {
-      var white = { red: 255, green: 255, blue: 255 },
-          black = { red: 0, green: 0, blue: 0 },
-          whiteDifference = rgbBrightnessDifference( rgb, white ),
-          blackDifference = rgbBrightnessDifference( rgb, black ) - 30;
-      
-      return blackDifference > whiteDifference ? black : white;
-    }
-    
-    // If data.value is not defined use the getter, otherwise use the setter
-    function getOrSet( data ) {
-      return data.value !== undefined ? data.setter() : data.getter();
-    }
+    }      
     
     // If called without an argument returns the current value for red, otherwise
     // sets the current value for red to the value passed and returns this 
@@ -484,18 +378,13 @@ var mojule = mojule === undefined ? {} : mojule;
       });     
     };
     
-    //  Alias for rgba
-    this.rgb = function( value ) {    
-      return color.rgba( value );
-    };
-    
     //  If called with no arguments gets an object with properties for red, green, 
     //  blue, alpha and the css string for the color. If called with a value sets 
     //  the color from an object with the properties [ red, green, blue, alpha ] 
     //  or [ r, g, b, a ]. You can pass partial objects through and only the 
     //  values passed will be set. When setting a value this function returns an 
     //  instance of this color to allow for method chaining.
-    this.rgba = function( value ) {
+    this.rgb = this.rgba = function( value ) {
       return getOrSet({
         value: value,
         setter: function() {
@@ -514,14 +403,9 @@ var mojule = mojule === undefined ? {} : mojule;
         getter: getRgba
       });
     };
-    
-    //  Alias for hsla
-    this.hsl = function( value ) {
-      return color.hsla( value );
-    };
-    
+   
     //  Works in the same way as rgba except using the hsla color space
-    this.hsla = function( value ) {
+    this.hsl = this.hsla = function( value ) {
       return getOrSet({
         value: value,
         setter: function(){
@@ -611,105 +495,199 @@ var mojule = mojule === undefined ? {} : mojule;
       return new mojule.Color( toneFromRgb( color.rgba() ) );
     };  
     
-    //  Returns whether or not a particular value can be parsed - this method 
-    //  is available without an object instance
-    mojule.Color.canParse = function( value ) {
-      return _( parsers.toArray() ).any( function( item ){ return item.predicate( value ); } );
-    };
-    
-    //  If the value has a parser that can handle it, return its name
-    mojule.Color.parserType = function( value ) {
-      var parser = _( parsers.toArray() ).first( function( item ){ return item.predicate( value ); } );
-      if( parser !== undefined ){ return parser.name; }
-    };
-    
-    //  Built in parsers. Not a good model for building plug-in parsers, see 
-    //  comment for addParser instead
-    parsers = {
-      undefinedValue: {
-        predicate: function( value ){ return value === undefined || value === null; },
-        parse: function(){ return color; }
-      },
-      cssHex: { 
-        predicate: isHex, 
-        parse: color.hex 
-      },
-      cssRgb: { 
-        predicate: isRgbInt, 
-        parse: parseRgbInt 
-      },
-      cssRgbPercent: { 
-        predicate: isRgbPercent, 
-        parse: parseRgbPercent 
-      },
-      cssRgba: { 
-        predicate: isRgbaInt, 
-        parse: parseRgbaInt 
-      },
-      cssRgbaPercent: { 
-        predicate: isRgbaPercent, 
-        parse: parseRgbaPercent 
-      },
-      cssHsl: { 
-        predicate: isHsl, 
-        parse: parseHsl 
-      },
-      cssHsla:  { 
-        predicate: isHsla, 
-        parse: parseHsla 
-      },
-      cssNamedColor: { 
-        predicate: isNamedColor, 
-        parse: parseNamedColor 
-      },
-      color: {
-        predicate: function( value ) {
-                return typeof value.rgba === 'function';
-              },
-        parse: function( value ) {
-                return color.rgba( value.rgba() );
-              }          
-      },
-      rgba: {
-        predicate: function( value ) {
-                return _( [ value.red, value.green, value.blue, value.r, value.g, value.b ] ).anyDefined();
-              }, 
-        parse: function( value ) {
-                return color.rgba( value );
-              }                 
-      },
-      hsla: {
-        predicate: function( value ) {
-                return _( [ value.hue, value.saturation, value.lightness, value.h, value.s, value.l ] ).anyDefined();
-              }, 
-        parse: function( value ) {
-                return color.hsla( value );
-              }                 
-      },
-      toArray: function(){
-        var asArray = [],
-            getItems = function( obj ) {
-              var key;
-              for( key in obj ) {
-                if( obj.hasOwnProperty( key ) && typeof obj[ key ] !== 'function' ) {          
-                  asArray.push({
-                    name: key,
-                    predicate: obj[ key ].predicate,
-                    parse: obj[ key ].parse
-                  });
-                }
-              }          
-            };
-        getItems( this );
-        getItems( mojule.Color.extraParsers );
-        return asArray;
-      }
-    };  
-    
     //  Set this color from the passed in value
     parse( value );
   };
 
+  //  Built in parsers. 
+  mojule.Color.parsers = {
+    undefinedValue: {
+      predicate:  function( value ){ 
+                    return value === undefined || value === null; 
+                  },
+      parse:      function( value, color ){ 
+                    return color; 
+                  }
+    },
+    cssHex: { 
+      predicate:  function ( value ) {       
+                    return typeof value === 'string' && ( /^#(?:[0-9a-f]{3,6})\b$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    return color.hex( value );
+                  }
+    },
+    cssRgb: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^rgb\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i );
+                    return color.rgba({ 
+                      red: parseInt( matches[ 1 ], 10 ), 
+                      green: parseInt( matches[ 2 ], 10 ), 
+                      blue: parseInt( matches[ 3 ], 10 )
+                    });
+                  } 
+    },
+    cssRgbPercent: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^rgb\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^rgb\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
+                    return color.rgba({  
+                      red: parseInt( matches[ 1 ], 10 ) * 2.55,  
+                      green: parseInt( matches[ 2 ], 10 ) * 2.55, 
+                      blue: parseInt( matches[ 3 ], 10 ) * 2.55,
+                      alpha: 1
+                    });
+                  } 
+    },
+    cssRgba: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^rgba\s*\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+                    return color.rgba({  
+                      red: parseInt( matches[ 1 ], 10 ), 
+                      green: parseInt( matches[ 2 ], 10 ), 
+                      blue: parseInt( matches[ 3 ], 10 ),
+                      alpha: parseFloat( matches[ 4 ], 10 )
+                    });    
+                  } 
+    },
+    cssRgbaPercent: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^rgba\s*\(\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^rgba\s*\(\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+                    return color.rgba({ 
+                      red: parseInt( matches[ 1 ], 10 ) * 2.55,  
+                      green: parseInt( matches[ 2 ], 10 ) * 2.55, 
+                      blue: parseInt( matches[ 3 ], 10 ) * 2.55,
+                      alpha: parseFloat( matches[ 4 ], 10 )
+                    });    
+                  } 
+    },
+    cssHsl: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^hsl\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^hsl\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*\)$/i );
+                    return color.hsla({  
+                      hue: parseInt( matches[ 1 ], 10 ),
+                      saturation: parseInt( matches[ 2 ], 10 ),
+                      lightness: parseInt( matches[ 3 ], 10 ),
+                      alpha: 1
+                    });  
+                  } 
+    },
+    cssHsla:  { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && ( /^hsla\s*\(\s*\d+\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])%\s*,\s*(?:[0-9]+|[0-9]*\.[0-9])\s*\)$/i ).test( _( value ).trim() );
+                  }, 
+      parse:      function( value, color ) {
+                    var matches = _( value ).trim().match( /^hsla\s*\(\s*(\d+)\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])%\s*,\s*([0-9]+|[0-9]*\.[0-9])\s*\)$/i );
+                    return color.hsla({  
+                      hue: parseInt( matches[ 1 ], 10 ),
+                      saturation: parseInt( matches[ 2 ], 10 ),
+                      lightness: parseInt( matches[ 3 ], 10 ),
+                      alpha: parseFloat( matches[ 4 ], 10 )
+                    });      
+                  } 
+    },
+    cssNamedColor: { 
+      predicate:  function( value ) {
+                    return typeof value === 'string' && mojule.Color.namedColors[ _( value ).trim() ] !== undefined;
+                  }, 
+      parse:      function( value, color ) {
+                    return color.rgba( mojule.Color.namedColors[ _( value ).trim() ].rgba() );
+                  } 
+    },
+    color: {
+      predicate:  function( value ) {
+                    return typeof value.rgba === 'function';
+                  },
+      parse:      function( value, color ) {
+                    return color.rgba( value.rgba() );
+                  }          
+    },
+    rgba: {
+      predicate:  function( value ) {
+                    return _( [ value.red, value.green, value.blue, value.r, value.g, value.b ] ).anyDefined();
+                  }, 
+      parse:      function( value, color ) {
+                    return color.rgba( value );
+                  }                 
+    },
+    hsla: {
+      predicate:  function( value ) {
+                    return _( [ value.hue, value.saturation, value.lightness, value.h, value.s, value.l ] ).anyDefined();
+                  }, 
+      parse:      function( value, color ) {
+                    return color.hsla( value );
+                  }                 
+    },
+    toArray: function(){
+      var key, 
+          asArray = [];
+      for( key in this ) {
+        if( this.hasOwnProperty( key ) && typeof this[ key ] !== 'function' ) {          
+          asArray.push({
+            name: key,
+            predicate: this[ key ].predicate,
+            parse: this[ key ].parse
+          });
+        }
+      } 
+      return asArray;
+    }
+  };  
+  
+  //  Returns whether or not a particular value can be parsed - this method 
+  //  is available without an object instance
+  mojule.Color.canParse = function( value ) {
+    return _( mojule.Color.parsers.toArray() ).any( function( item ){ return item.predicate( value ); } );
+  };
+  
+  //  If the value has a parser that can handle it, return its name
+  mojule.Color.parserType = function( value ) {
+    var parser = _( mojule.Color.parsers.toArray() ).first( function( item ){ return item.predicate( value ); } );
+    if( parser !== undefined ){ return parser.name; }
+  };  
+ 
+  // Allows you to add a custom color parser. name is an identifier and should
+  // be unique. If it is not unique it will overwrite the existing parser!
+  //
+  // parser should be an object like:
+  //
+  // {
+  // predicate: function( value ){
+  // // Return a boolean representing whether this parser
+  // // handles given value, see isHex etc. in this class for
+  // // examples
+  // },
+  // parse: function( value, color ) {
+  // // Set the value on color then return color so that methods
+  // // can be chained
+  // }
+  // }
+  mojule.Color.addParser = function( name, parser ) {
+    mojule.Color.parsers[ name ] = parser;
+  };
+
+  // Remove a parser by name. Only works on plug-in parsers.
+  mojule.Color.removeParser = function( name ) {
+    if( mojule.Color.parsers[ name ] !== undefined ) {
+      delete mojule.Color.parsers[ name ];
+    }
+  };
+ 
+ 
   //  Produces an array of colors with a length of steps where the first item 
   //  equals the start color, the last item equals the end color and the 
   //  intermediate items are interpolated values in between. You can pass a
@@ -758,37 +736,6 @@ var mojule = mojule === undefined ? {} : mojule;
     }
     
     return colorRange;
-  };
-
-  //  Plug-in parsers. You can modify this directly rather than using addParser
-  //  and removeParser if you understand what you're doing.
-  mojule.Color.extraParsers = {};
-
-  //  Allows you to add a custom color parser. name is an identifier and should 
-  //  be unique.
-  //
-  //  parser should be an object like:
-  //
-  //  {
-  //    predicate: function( value ){ 
-  //                  // Return a boolean representing whether this parser 
-  //                  // handles given value, see isHex etc. in this class for
-  //                  // examples
-  //               },
-  //    parse: function( value, color ) {
-  //             // Set the value on color then return color so that methods 
-  //             // can be chained
-  //           }
-  //  }
-  mojule.Color.addParser = function( name, parser ) {
-    mojule.Color.extraParsers[ name ] = parser;
-  };
-
-  //  Remove a parser by name. Only works on plug-in parsers.
-  mojule.Color.removeParser = function( name ) {
-    if( mojule.Color.extraParsers[ name ] !== undefined ) {
-      delete mojule.Color.extraParsers[ name ];
-    }
   };
 
   //  CSS3 named colors and their values
@@ -941,7 +888,7 @@ var mojule = mojule === undefined ? {} : mojule;
     whitesmoke: new mojule.Color( '#f5f5f5' ),
     yellow: new mojule.Color( '#ffff00' ),
     yellowgreen: new mojule.Color( '#9acd32' ) 
-  };
+  };    
 }());
 
 //  Alias mojule.Color to just Color providing there are no conflicts
